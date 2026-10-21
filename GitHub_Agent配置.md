@@ -1,25 +1,27 @@
 # GitHub Agent 操作准备
 
 > 目标：让 agent 能完成建仓、推送、Pages、Actions、Issue/PR 等操作，同时不把 token 写进仓库。
-> 当前状态：SSH 已验证；本地 `main` 已有首个提交；远程指向 `git@github.com:Logic2501/rcs-jump-demo.git`；**缺 GitHub CLI 登录、远程仓库和 Pages 启用**。
+> 当前状态：已安装并登录 `gh`；仓库 `Logic2501/rcs-jump-demo` 已创建；`main` 已推送；Pages 已通过 GitHub Actions 部署成功。
+> 站点：https://logic2501.github.io/rcs-jump-demo/
 
-## 1. 必需的缺口
+## 1. 当前状态
 
 | 项 | 状态 | 说明 |
 |----|------|------|
 | GitHub SSH | ✅ | `ssh -T git@github.com` 返回 `Hi Logic2501!` |
-| 本地 git 提交 | ✅ | 提交 `d4411d5` |
-| git remote | ✅ | `origin` 已指向目标仓库 |
-| GitHub CLI (`gh`) | ❌ | 未安装 |
-| gh 登录 | ❌ | 需要浏览器/一次性验证码，必须人工完成 |
-| GitHub 仓库 | ❌ | 尚未创建 |
-| GitHub Pages | ❌ | 仓库创建后才能启用 |
+| 本地 git 提交 | ✅ | `main` 已推送到远端 |
+| git remote | ✅ | `origin` 指向 `Logic2501/rcs-jump-demo` |
+| GitHub CLI (`gh`) | ✅ | 2.93.0，已安装 |
+| gh 登录 | ✅ | 账号 `Logic2501`，SSH 协议，scopes: repo/workflow |
+| GitHub 仓库 | ✅ | https://github.com/Logic2501/rcs-jump-demo |
+| GitHub Pages | ✅ | https://logic2501.github.io/rcs-jump-demo/ |
 
-## 2. 一次性人工步骤
+## 2. 已完成的一次性步骤（记录）
 
 ```bash
 brew install gh
 gh auth login --hostname github.com --git-protocol ssh --scopes repo,workflow
+bash scripts/github-bootstrap.sh
 ```
 
 登录选择：
