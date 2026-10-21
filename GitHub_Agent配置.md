@@ -12,15 +12,19 @@
 | 本地 git 提交 | ✅ | `main` 已推送到远端 |
 | git remote | ✅ | `origin` 指向 `Logic2501/rcs-jump-demo` |
 | GitHub CLI (`gh`) | ✅ | 2.93.0，已安装 |
-| gh 登录 | ✅ | 账号 `Logic2501`，SSH 协议，scopes: repo/workflow |
+| gh 登录 | ✅ | 账号 `Logic2501`，SSH 协议，scopes: `gist, read:org, repo, workflow` |
 | GitHub 仓库 | ✅ | https://github.com/Logic2501/rcs-jump-demo |
 | GitHub Pages | ✅ | https://logic2501.github.io/rcs-jump-demo/ |
 
 ## 2. 已完成的一次性步骤（记录）
 
 ```bash
-brew install gh
-gh auth login --hostname github.com --git-protocol ssh --scopes repo,workflow
+HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 \
+  brew install gh
+
+HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 \
+  gh auth login --hostname github.com --git-protocol ssh --scopes repo,workflow
+
 bash scripts/github-bootstrap.sh
 ```
 
@@ -39,7 +43,7 @@ gh api user --jq .login
 
 ## 3. 自动建仓与 Pages
 
-登录后执行：
+需要重建或重新部署时执行：
 
 ```bash
 bash scripts/github-bootstrap.sh
@@ -112,4 +116,15 @@ gh auth status
 - 私钥 `~/.ssh/id_ed25519` 不复制、不提交。
 - token 不写入 `opencode.json`、`AGENTS.md`、仓库文件。
 - Pages 只发布静态文件；当前站点不需要服务端密钥。
-- 网络/建仓/改 Pages 属于需要用户明确同意的操作；本文件只做准备工作，不自动执行登录或建仓。
+- 网络/建仓/改 Pages 属于需要用户明确同意的操作；本次已完成建仓与部署，重跑前先确认账号、仓库和 Pages 状态。
+
+## 9. 本次验证（2026-10-21）
+
+| 项 | 结果 |
+|----|------|
+| `gh auth status` | ✅ `Logic2501` / SSH / `repo,workflow` |
+| 仓库创建与推送 | ✅ `main -> origin/main` |
+| Deploy GitHub Pages | ✅ success |
+| Test | ✅ success |
+| Pages 页面 | ✅ HTTP 200，`window.__rcs` 可访问 |
+| 单文件 HTML | ✅ HTTP 与 `file://` 均可加载 |

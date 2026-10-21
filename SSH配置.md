@@ -3,6 +3,16 @@
 > 实测环境：macOS Apple Silicon，2026-10-21。
 > 适用场景：网络屏蔽 22 端口，但允许 443；GitHub SSH 走 `ssh.github.com:443`。
 
+## 0. 当前状态（2026-10-21）
+
+| 项 | 状态 |
+|----|------|
+| `ssh -T git@github.com` | ✅ `Hi Logic2501!` |
+| `gh auth status` | ✅ `Logic2501`，SSH 协议，scopes: `gist, read:org, repo, workflow` |
+| 仓库 | https://github.com/Logic2501/rcs-jump-demo |
+| 推送 | ✅ `main -> origin/main` |
+| Pages | ✅ https://logic2501.github.io/rcs-jump-demo/ |
+
 ## 1. 配置文件
 
 路径：`~/.ssh/config`
@@ -102,7 +112,35 @@ git remote add origin git@github.com:Logic2501/<repo>.git
 git push -u origin main
 ```
 
-> 本机当前项目尚未配置 `git remote`；需要推送时再添加。
+> 当前项目已配置 `origin` 为 `git@github.com:Logic2501/rcs-jump-demo.git`，并已成功推送 `main`。
+
+### 5.1 提交身份
+
+本机未设置全局 `git user.name` / `user.email`；本次提交使用一次性参数：
+
+```bash
+git -c user.name=Logic2501 \
+    -c user.email=Logic2501@users.noreply.github.com \
+    commit -m "message"
+```
+
+需要固定身份时，只在项目内设置（不要改全局）：
+
+```bash
+git config user.name Logic2501
+git config user.email Logic2501@users.noreply.github.com
+```
+
+### 5.2 SSH 与 gh 的分工
+
+| 能力 | SSH | `gh` / GitHub API |
+|------|-----|-------------------|
+| `git push/pull` | ✅ | ✅（内部仍可走 SSH） |
+| 创建仓库 | ❌ | ✅ `gh repo create` |
+| Pages / Actions | ❌ | ✅ |
+| Issue / PR / Release | ❌ | ✅ |
+
+> SSH 只是传输认证，不能替代浏览器登录；`gh auth login` 获取的是 API token。
 
 ## 6. 常见问题
 
@@ -134,7 +172,14 @@ ssh -T -o StrictHostKeyChecking=accept-new git@github.com
 
 ### 6.4 代理环境
 
-若 443 也需要代理，可在 `Host github.com` 段增加 `ProxyCommand`（按实际代理软件调整），不要全局改 `http.proxy` 影响其他仓库。
+- GitHub SSH 走 `ssh.github.com:443`，当前无需 HTTP 代理。
+- `github.com` 直连实测超时；`gh auth login` 建议带 Clash 代理：
+  ```bash
+  HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 \
+    gh auth login --hostname github.com --git-protocol ssh --scopes repo,workflow
+  ```
+- `api.github.com` 直连可用（约 0.8s），走代理约 0.4s。
+- 若 443 也需要代理，可在 `Host github.com` 段增加 `ProxyCommand`（按实际代理软件调整），不要全局改 `http.proxy` 影响其他仓库。
 
 ## 7. 安全约束
 
@@ -148,3 +193,5 @@ ssh -T -o StrictHostKeyChecking=accept-new git@github.com
   id_ed25519.pub
   ```
 - 换机时重新生成密钥并在 GitHub 添加新公钥，不要复用私钥。
+- `gh` token 保存在系统 keyring；不要把 `gh auth token` 输出贴到聊天、日志或仓库。
+- 无人值守用 fine-grained PAT 时，至少需要 Contents / Pages / Workflows 读写；token 只注入本机环境。

@@ -7,6 +7,7 @@ node:   /opt/homebrew/bin/node
 npm:    /opt/homebrew/bin/npm
 npx:    /opt/homebrew/bin/npx
 mmdc:   /opt/homebrew/bin/mmdc
+gh:     /opt/homebrew/bin/gh
 ```
 
 > 以上路径在 macOS (Apple Silicon) 下通过 `brew install node` 和 `npm install -g @mermaid-js/mermaid-cli` 安装后的默认位置。
@@ -46,6 +47,9 @@ source ~/.zshrc
 
 # 验证 npm
 /opt/homebrew/bin/npm --version
+
+# 验证 gh
+/opt/homebrew/bin/gh --version
 ```
 
 ## 静态服务器（本地 Web / ES Module）
@@ -59,6 +63,30 @@ source ~/.zshrc
 - 浏览器直接打开 `file://` 会因 CORS / MIME 拒绝加载 ES Module；必须走 HTTP。
 - 默认只监听回环。需要局域网或 tailnet 访问时，用 Tailscale Serve 反代（见 `本机运行环境检查.md` §6.3），不要直接 `--bind 0.0.0.0`。
 - 验证：`curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8123/` 应返回 `200`。
+
+## GitHub CLI（gh）
+
+路径：`/opt/homebrew/bin/gh`（2.93.0）
+
+```bash
+gh auth status
+gh repo view
+gh run list
+gh run view <id> --log
+gh issue list
+gh pr list
+gh release list
+```
+
+- `gh` 使用 GitHub API token（保存在系统 keyring）；SSH 只负责 `git push/pull` 传输。建仓、Pages、Actions、Issue/PR **不能只靠 SSH**。
+- 登录（`github.com` 直连可能超时，建议走 Clash 代理）：
+  ```bash
+  HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 \
+    gh auth login --hostname github.com --git-protocol ssh --scopes repo,workflow
+  ```
+- 无人值守环境可用 `GH_TOKEN`（fine-grained PAT：Contents / Pages / Workflows 读写），只注入本机环境，不要写进仓库。
+- 本项目的建仓/Pages 脚本：`scripts/github-bootstrap.sh`
+- 已配工作流：`.github/workflows/pages.yml`、`.github/workflows/test.yml`
 
 ## 无头 Chrome 截图
 
