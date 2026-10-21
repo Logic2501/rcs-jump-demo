@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RCS-07 · 桶滚软着陆试验</title>
+<link rel="stylesheet" href="./src/style.css" />
+<script type="importmap">
+  { "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+
+  <svg id="hud" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" aria-label="RCS flight telemetry">
+    <defs>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0b3550" />
+        <stop offset="0.55" stop-color="#1a6f86" />
+        <stop offset="1" stop-color="#2a8b8e" />
+      </linearGradient>
+      <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5b3a20" />
+        <stop offset="1" stop-color="#1b130e" />
+      </linearGradient>
+      <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#07111b" stop-opacity="0.82" />
+        <stop offset="1" stop-color="#03070c" stop-opacity="0.66" />
+      </linearGradient>
+      <linearGradient id="propGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ff4b3e" />
+        <stop offset="0.55" stop-color="#ffb454" />
+        <stop offset="1" stop-color="#6ee7ff" />
+      </linearGradient>
+      <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="3.2" result="b" />
+        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+      <clipPath id="adiClip"><circle cx="0" cy="0" r="74" /></clipPath>
+      <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+        <rect width="4" height="1" fill="#6ee7ff" opacity="0.035" />
+      </pattern>
+    </defs>
+
+    <g id="hud-static" font-family="'SF Mono',Menlo,Consolas,monospace">
+      <!-- ============ HEADER ============ -->
+      <g class="panel" transform="translate(36 30)">
+        <rect class="panel-bg" width="356" height="136" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M340 0 H356 V16" />
+        <path class="corner" d="M0 120 V136 H16" />
+        <path class="corner" d="M340 136 H356 V120" />
+        <rect x="0" y="0" width="3" height="136" fill="#6ee7ff" opacity="0.7" />
+        <text x="20" y="28" class="kicker">RCS FLIGHT TEST · VEHICLE 07</text>
+        <text id="phase" x="20" y="66" class="phase">RUN-UP</text>
+        <text id="phase-sub" x="20" y="88" class="phase-sub">助跑 / 24 m·s⁻¹</text>
+        <line x1="20" y1="102" x2="336" y2="102" class="hair" />
+        <text id="clock" x="20" y="122" class="mono-sm">T+ 00:00.00</text>
+        <text id="status" x="336" y="122" class="mono-sm right ok">RCS ARMED</text>
+      </g>
+
+      <!-- ============ TELEMETRY ============ -->
+      <g class="panel" transform="translate(36 182)">
+        <rect class="panel-bg" width="356" height="276" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M340 0 H356 V16" />
+        <path class="corner" d="M0 260 V276 H16" />
+        <path class="corner" d="M340 276 H356 V260" />
+        <text x="20" y="26" class="kicker">FLIGHT TELEMETRY</text>
+        <g class="readouts">
+          <text x="20" y="62" class="label">ALTITUDE</text>
+          <text id="alt" x="20" y="94" class="value">0.00</text>
+          <text x="176" y="94" class="unit">m</text>
+          <text x="20" y="124" class="label">VERTICAL SPEED</text>
+          <text id="vs" x="20" y="156" class="value">+0.0</text>
+          <text x="176" y="156" class="unit">m/s</text>
+          <text x="20" y="186" class="label">GROUND SPEED</text>
+          <text id="gs" x="20" y="218" class="value">20.0</text>
+          <text x="176" y="218" class="unit">m/s</text>
+          <text x="214" y="62" class="label">ROLL</text>
+          <text id="roll" x="214" y="94" class="value amber">000</text>
+          <text x="316" y="94" class="unit">deg</text>
+          <text x="214" y="124" class="label">YAW ANGLE</text>
+          <text id="atterr" x="214" y="156" class="value">+0.0</text>
+          <text x="316" y="156" class="unit">deg</text>
+          <text x="214" y="186" class="label">RCS THRUST</text>
+          <text id="thrust" x="214" y="218" class="value red">0.0</text>
+          <text x="316" y="218" class="unit">kN</text>
+        </g>
+        <line x1="20" y1="232" x2="336" y2="232" class="hair" />
+        <text x="20" y="252" class="label">PROPELLANT</text>
+        <text id="prop-text" x="336" y="252" class="mono-sm right">200.0 kg · 100%</text>
+        <rect x="20" y="260" width="316" height="4" fill="#142433" />
+        <rect id="prop-bar" x="20" y="260" width="316" height="4" fill="url(#propGrad)" />
+      </g>
+
+      <!-- ============ FLIGHT PROFILE ============ -->
+      <g class="panel" transform="translate(36 476)">
+        <rect class="panel-bg" width="356" height="164" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M340 0 H356 V16" />
+        <path class="corner" d="M0 148 V164 H16" />
+        <path class="corner" d="M340 164 H356 V148" />
+        <text x="20" y="26" class="kicker">FLIGHT PROFILE · SIDE VIEW</text>
+        <g transform="translate(22 42)">
+          <line x1="0" y1="102" x2="310" y2="102" stroke="#31465a" stroke-width="1" />
+          <path d="M106 102 L146 102 L106 68 Z" fill="#1b2b3a" stroke="#4d6b84" stroke-width="1" />
+          <path d="M146 68 L214 68" stroke="#6ee7ff" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.5" />
+          <path d="M146 68 Q190 12 236 90" fill="none" stroke="#ffb454" stroke-width="0.8" stroke-dasharray="3 5" opacity="0.55" />
+          <path d="M214 90 L250 90 M222 98 L242 98" stroke="#ff4b3e" stroke-width="1.4" opacity="0.8" />
+          <path id="profile-trace" d="" fill="none" stroke="#6ee7ff" stroke-width="1.4" opacity="0.9" />
+          <circle id="profile-car" cx="0" cy="0" r="2.6" fill="#ff4b3e" />
+          <line id="profile-roll" x1="0" y1="-7" x2="0" y2="7" stroke="#ffb454" stroke-width="1.2" />
+          <text x="0" y="124" class="tiny">-40 m</text>
+          <text x="140" y="124" class="tiny">RAMP</text>
+          <text x="228" y="124" class="tiny">LZ</text>
+          <text x="288" y="124" class="tiny">+200</text>
+        </g>
+      </g>
+
+      <!-- ============ ATTITUDE ============ -->
+      <g class="panel" transform="translate(1244 30)">
+        <rect class="panel-bg" width="320" height="214" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M304 0 H320 V16" />
+        <path class="corner" d="M0 198 V214 H16" />
+        <path class="corner" d="M304 214 H320 V198" />
+        <text x="18" y="24" class="kicker">ATTITUDE · BODY FRAME</text>
+        <g transform="translate(86 118)">
+          <circle cx="0" cy="0" r="76" fill="#02060b" stroke="#6ee7ff" stroke-opacity="0.28" />
+          <g clip-path="url(#adiClip)">
+            <g id="adi-inner">
+              <rect x="-120" y="-130" width="240" height="130" fill="url(#skyGrad)" />
+              <rect x="-120" y="0" width="240" height="130" fill="url(#groundGrad)" />
+              <line x1="-120" y1="0" x2="120" y2="0" stroke="#e8f6ff" stroke-width="1.4" opacity="0.9" />
+              <g stroke="#cfe9f6" stroke-width="0.8" opacity="0.55">
+                <line x1="-42" y1="-10" x2="-16" y2="-10" />
+                <line x1="16" y1="-10" x2="42" y2="-10" />
+                <line x1="-52" y1="-20" x2="-18" y2="-20" />
+                <line x1="18" y1="-20" x2="52" y2="-20" />
+                <line x1="-42" y1="10" x2="-16" y2="10" />
+                <line x1="16" y1="10" x2="42" y2="10" />
+                <line x1="-52" y1="20" x2="-18" y2="20" />
+                <line x1="18" y1="20" x2="52" y2="20" />
+              </g>
+              <text x="-4" y="-26" class="tiny">10</text>
+              <text x="-4" y="32" class="tiny">-10</text>
+            </g>
+          </g>
+          <circle cx="0" cy="0" r="76" fill="none" stroke="#6ee7ff" stroke-opacity="0.35" />
+          <g stroke="#6ee7ff" stroke-width="1" opacity="0.8">
+            <line x1="-76" y1="0" x2="-66" y2="0" />
+            <line x1="66" y1="0" x2="76" y2="0" />
+            <line x1="0" y1="-76" x2="0" y2="-66" />
+            <line x1="0" y1="66" x2="0" y2="76" />
+          </g>
+          <path d="M0 -84 L-5 -74 L5 -74 Z" fill="#ffb454" />
+          <path d="M-12 0 L12 0 L0 10 Z" fill="#ff4b3e" />
+          <text id="adi-roll" x="0" y="101" class="adi-read" text-anchor="middle">000°</text>
+        </g>
+        <g transform="translate(190 62)">
+          <text x="0" y="0" class="label">ROLL RATE</text>
+          <text id="rollrate" x="0" y="22" class="mono-md">+0.00</text>
+          <text x="66" y="22" class="unit">rad/s</text>
+          <text x="0" y="52" class="label">PITCH</text>
+          <text id="pitch" x="0" y="74" class="mono-md">+0.0</text>
+          <text x="66" y="74" class="unit">deg</text>
+          <text x="0" y="104" class="label">MASS</text>
+          <text id="mass" x="0" y="126" class="mono-md">2000</text>
+          <text x="66" y="126" class="unit">kg</text>
+        </g>
+      </g>
+
+      <!-- ============ NOZZLE MAP ============ -->
+      <g class="panel" transform="translate(1244 262)">
+        <rect class="panel-bg" width="320" height="356" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M304 0 H320 V16" />
+        <path class="corner" d="M0 340 V356 H16" />
+        <path class="corner" d="M304 356 H320 V340" />
+        <text x="18" y="24" class="kicker">RCS NOZZLE MAP</text>
+        <g id="nozzle-map" transform="translate(160 186)">
+          <rect x="-52" y="-112" width="104" height="224" rx="26" fill="#0a141d" stroke="#3c556a" stroke-width="1.2" />
+          <rect x="-36" y="-86" width="72" height="172" rx="16" fill="none" stroke="#254056" stroke-width="0.8" />
+          <path d="M-52 -44 L-58 -14 L-52 16 M52 -44 L58 -14 L52 16" fill="none" stroke="#ff4b3e" stroke-width="1.5" opacity="0.55" />
+          <text x="0" y="-100" class="tiny" text-anchor="middle">FWD</text>
+          <g id="nozzle-pods"></g>
+        </g>
+        <g transform="translate(18 300)">
+          <circle cx="6" cy="-4" r="4" fill="#6ee7ff" />
+          <text x="18" y="0" class="tiny">LIFT +Y</text>
+          <path d="M104 -6 L114 0 L104 6 Z" fill="#ff4b3e" />
+          <text x="122" y="0" class="tiny">YAW ±Z</text>
+          <text x="6" y="22" class="tiny dim">16 × 4.0 kN · PULSE 25 ms</text>
+        </g>
+        <text id="pulse-total" x="304" y="24" class="mono-sm right amber">0 PULSES</text>
+      </g>
+
+      <!-- ============ SPECS ============ -->
+      <g class="panel" transform="translate(1244 634)">
+        <rect class="panel-bg" width="320" height="154" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M304 0 H320 V16" />
+        <text x="18" y="24" class="kicker">PROPULSION / CONTROL</text>
+        <g class="spec-grid">
+          <text x="18" y="50" class="label">THRUSTERS</text><text x="302" y="50" class="mono-sm right">16 × 4 000 N</text>
+          <text x="18" y="74" class="label">SPECIFIC IMPULSE</text><text x="302" y="74" class="mono-sm right">50 s</text>
+          <text x="18" y="98" class="label">MIN IMPULSE BIT</text><text x="302" y="98" class="mono-sm right">25 ms / 100 N·s</text>
+          <text x="18" y="122" class="label">CONTROL RATE</text><text x="302" y="122" class="mono-sm right">240 Hz · PWM</text>
+          <text x="18" y="144" class="tiny dim">COLD GAS N₂ · 6-DOF RIGID BODY</text>
+        </g>
+      </g>
+
+      <!-- ============ PULSE TIMELINE ============ -->
+      <g class="panel" transform="translate(412 634)">
+        <rect class="panel-bg" width="790" height="236" rx="2" />
+        <path class="corner" d="M0 16 V0 H16" />
+        <path class="corner" d="M774 0 H790 V16" />
+        <path class="corner" d="M0 220 V236 H16" />
+        <path class="corner" d="M774 236 H790 V220" />
+        <text x="18" y="24" class="kicker">RCS PULSE TRAIN · 2.4 s WINDOW</text>
+        <text x="18" y="46" class="tiny dim">每根竖条 = 一次 25 ms 脉冲；控制指令经最小冲量量化后驱动喷口</text>
+        <text x="772" y="46" class="spec right">25 ms MINIMUM IMPULSE BIT</text>
+        <g id="timeline" transform="translate(118 62)"></g>
+        <text x="18" y="220" class="tiny dim">T−2.4 s</text>
+        <text x="742" y="220" class="tiny dim right">NOW</text>
+      </g>
+
+      <g id="hints" transform="translate(412 880)">
+        <text class="tiny dim">SPACE 暂停 · R 重播 · C 镜头 · 1/2/3 速度</text>
+      </g>
+    </g>
+
+    <g id="phase-banner" opacity="0">
+      <rect x="600" y="118" width="400" height="82" fill="#03080e" opacity="0.6" />
+      <line x1="600" y1="118" x2="1000" y2="118" stroke="#6ee7ff" stroke-opacity="0.5" />
+      <line x1="600" y1="200" x2="1000" y2="200" stroke="#6ee7ff" stroke-opacity="0.18" />
+      <text id="banner-en" x="800" y="152" text-anchor="middle" class="banner-en">BARREL ROLL</text>
+      <text id="banner-cn" x="800" y="180" text-anchor="middle" class="banner-cn">桶滚</text>
+    </g>
+  </svg>
+
+  <div id="controls">
+    <button id="btn-play" title="暂停 / 继续">PAUSE</button>
+    <button id="btn-replay" title="重播">REPLAY</button>
+    <button id="btn-cam" title="切换镜头">CAM · CINEMA</button>
+    <div id="speed-group">
+      <button data-speed="0.35">0.35×</button>
+      <button data-speed="0.7">0.7×</button>
+      <button data-speed="1" class="active">1×</button>
+    </div>
+    <label id="env-control" title="环境光强度">
+      <span>ENV</span>
+      <input id="env" type="range" min="0" max="2" step="0.05" value="1" />
+      <output id="env-val">1.00</output>
+    </label>
+  </div>
+
+  <div id="loader">
+    <div class="loader-inner">
+      <div class="loader-kicker">RCS FLIGHT TEST · VEHICLE 07</div>
+      <div class="loader-title">桶滚 · 软着陆</div>
+      <div class="loader-bar"><span></span></div>
+    </div>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

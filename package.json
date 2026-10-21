@@ -1,0 +1,17 @@
+{
+  "name": "rcs-jump-demo",
+  "version": "1.0.0",
+  "description": "three.js + SVG RCS jump simulator",
+  "main": "index.js",
+  "scripts": {
+    "start": "python3 -m http.server 8123 --bind 127.0.0.1",
+    "test": "node scripts/test-sim.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.186.1"
+  }
+}
